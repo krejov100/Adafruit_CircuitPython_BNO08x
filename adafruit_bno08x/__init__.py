@@ -90,6 +90,8 @@ BNO_REPORT_STEP_COUNTER = const(0x11)
 BNO_REPORT_RAW_ACCELEROMETER = const(0x14)
 BNO_REPORT_RAW_GYROSCOPE = const(0x15)
 BNO_REPORT_RAW_MAGNETOMETER = const(0x16)
+BNO_REPORT_ARVR_ROTATION_VECTOR = const(0x17)
+BNO_REPORT_ARVR_GAME_ROTATION_VECTOR = const(0x17)
 BNO_REPORT_SHAKE_DETECTOR = const(0x19)
 
 BNO_REPORT_STABILITY_CLASSIFIER = const(0x13)
@@ -145,6 +147,8 @@ _AVAIL_SENSOR_REPORTS = {
     BNO_REPORT_ROTATION_VECTOR: (_Q_POINT_14_SCALAR, 4, 14),
     BNO_REPORT_GEOMAGNETIC_ROTATION_VECTOR: (_Q_POINT_12_SCALAR, 4, 14),
     BNO_REPORT_GAME_ROTATION_VECTOR: (_Q_POINT_14_SCALAR, 4, 12),
+    BNO_REPORT_ARVR_ROTATION_VECTOR: (_Q_POINT_14_SCALAR, 4, 12),
+    BNO_REPORT_ARVR_GAME_ROTATION_VECTOR: (_Q_POINT_14_SCALAR, 4, 12),
     BNO_REPORT_STEP_COUNTER: (1, 1, 12),
     BNO_REPORT_SHAKE_DETECTOR: (1, 1, 6),
     BNO_REPORT_STABILITY_CLASSIFIER: (1, 1, 6),
@@ -563,6 +567,37 @@ class BNO08X:  # pylint: disable=too-many-instance-attributes, too-many-public-m
                 "No game quaternion report found, is it enabled?"
             ) from None
 
+    @property
+    def arvr_quaternion(self):
+        """Estimates of the magnetic field and the roll/pitch of the device can create a potential correction in the rotation
+        vector produced. For applications (typically augmented or virtual reality applications) where a sudden jump can be
+        disturbing, the output is adjusted to prevent these jumps in a manner that takes account of the velocity of the
+        sensor system. This process is called AR/VR stabilization. An FRS (Flash Record System – see Figure 1-31)
+        record is provided to allow configuration of this feature."""
+        self._process_available_packets()
+        try:
+            return self._readings[BNO_REPORT_ARVR_ROTATION_VECTOR]
+        except KeyError:
+            raise RuntimeError(
+                "No AR/VR quaternion report found, is it enabled?"
+            ) from None
+
+    @property
+    def arvr_game_quaternion(self):
+        """While the magnetometer is removed from the calculation of the game rotation vector, the accelerometer itself can
+        create a potential correction in the rotation vector produced (i.e. the estimate of gravity changes). For applications
+        (typically augmented or virtual reality applications) where a sudden jump can be disturbing, the output is adjusted
+        to prevent these jumps in a manner that takes account of the velocity of the sensor system. This process is called
+        AR/VR stabilization. An FRS (Flash Record System – see Figure 1-31) record is provided to allow configuration of
+        this feature. """
+        self._process_available_packets()
+        try:
+            return self._readings[BNO_REPORT_ARVR_GAME_ROTATION_VECTOR]
+        except KeyError:
+            raise RuntimeError(
+                "No AR/VR game quaternion report found, is it enabled?"
+            ) from None
+            
     @property
     def steps(self):
         """The number of steps detected since the sensor was initialized"""
